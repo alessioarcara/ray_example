@@ -21,7 +21,7 @@ class MMDetActor:
         logger.debug("actor called")
         return {
             "np_version": np.__version__,
-            "sum_1_2_3": int(np.array([1,2,3]).sum()),
+            "sum_1_2_3": int(np.array([1, 2, 3]).sum()),
         }
 
 
@@ -39,12 +39,14 @@ class SAMActor:
 try:
     sam_actor = ray.get_actor("sam-singleton")
 except ValueError:
-    sam_actor = SAMActor.options(
-        name="sam-singleton",
-        namespace="vision",
-        lifetime="detached"
-    ).remote()
-
+    try:
+        sam_actor = SAMActor.options(
+            name="sam-singleton",
+            namespace="vision",
+            lifetime="detached"
+        ).remote()
+    except ValueError:
+        sam_actor = ray.get_actor("sam-singleton", namespace="vision")
 
 mmdet_actors: dict[str, ray.actor.ActorHandle] = {}
 
