@@ -2,7 +2,9 @@ import ray
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-ray.init(namespace="vision")
+
+context = ray.init()
+print(context.dashboard_url)
 
 
 @ray.remote
@@ -15,6 +17,8 @@ class MMDetActor:
 
     def test_numpy(self):
         import numpy as np
+        from loguru import logger
+        logger.debug("actor called")
         return {
             "np_version": np.__version__,
             "sum_1_2_3": int(np.array([1,2,3]).sum()),
@@ -27,6 +31,8 @@ class SAMActor:
         pass
 
     def predict(self):
+        from loguru import logger
+        logger.debug("actor called")
         return "SAM run"
 
 
@@ -58,7 +64,7 @@ async def predict(req: PredictRequest):
         name = req.project_name
 
         try:
-            actor = ray.get_actor(name)
+            actor = ray.get_actor(name, namespace="vision")
         except ValueError:
             actor = MMDetActor.options(
                 runtime_env={"conda": "/Users/alessioarcara/miniforge3/envs/mmdet"},
@@ -71,7 +77,7 @@ async def predict(req: PredictRequest):
         numpy_info = await actor.test_numpy.remote()
 
         return {
-            "model":     "mmdet",
+            "model": "mmdet",
             "result": result,
             "numpy_info": numpy_info,
         }
